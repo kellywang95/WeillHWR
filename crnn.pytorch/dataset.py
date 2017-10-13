@@ -12,6 +12,12 @@ import sys
 from PIL import Image
 import numpy as np
 
+import pandas as pd
+from glob import glob
+from os.path import basename
+
+from sklearn.model_selection import train_test_split
+
 
 class lmdbDataset(Dataset):
 
@@ -62,6 +68,68 @@ class lmdbDataset(Dataset):
 
             if self.target_transform is not None:
                 label = self.target_transform(label)
+
+        return (img, label)
+
+
+class hwrDataset(Dataset):
+
+    def __init__(self, root="./data/words/*/*/*.png", mode="train", transform=None, target_transform=None):
+        alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
+        train_threshold = 0.7
+        files = glob(root)
+
+        name_to_file = {}
+
+        rows = []
+
+        for file_name in files:
+            name_to_file[basename(file_name).rstrip(".png")] = file_name
+
+        for line in open("./data/words_gt.txt", "r").readlines():
+            parts = line.split(" ")
+
+            gt = " ".join(parts[8:]).rstrip("\n")
+
+            processed_gt = "".join([k for k in gt.lower() if k in alphabet ])
+
+            # TODO validate gt
+
+            if parts[0] in name_to_file and len(processed_gt) > 0:
+                rows.append([parts[0], name_to_file[parts[0]], processed_gt])
+
+        if mode == "train":
+            self.data = pd.DataFrame(rows[:int(len(rows) * train_threshold)], columns=["name", "path", "groundtruth"])
+
+        else:
+            self.data = pd.DataFrame(rows[int(len(rows) * train_threshold):], columns=["name", "path", "groundtruth"])
+
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return int(self.data.__len__() - 1)
+
+    def __getitem__(self, index):
+        assert index <= len(self), 'index range error'
+
+        index += 1
+
+        try:
+            img = Image.open(list(self.data.iloc[[index]].path)[0]).convert('L')
+        except IOError:
+            print('Corrupted image for %d' % index)
+            return self[index + 1]
+        except Exception:
+            print(index)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        label = str(list(self.data.iloc[[index]].groundtruth)[0])
+
+        if self.target_transform is not None:
+            label = self.target_transform(label)
 
         return (img, label)
 

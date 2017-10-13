@@ -6,9 +6,11 @@ from PIL import Image
 
 import models.crnn as crnn
 
+import pandas
+
 
 model_path = './data/crnn.pth'
-img_path = './data/to.png'
+img_path = './data/top.png'
 alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
 
 model = crnn.CRNN(32, 1, 37, 256)
@@ -29,6 +31,8 @@ image = Variable(image)
 
 model.eval()
 preds = model(image)
+
+datafram = pandas.DataFrame(preds.numpy())
 
 _, preds = preds.max(2)
 preds = preds.transpose(1, 0).contiguous().view(-1)
