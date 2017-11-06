@@ -6,11 +6,10 @@ from PIL import Image
 
 import models.crnn as crnn
 
-import pandas
+# model_path = './data/crnn.pth'
 
-
-model_path = './data/crnn.pth'
-img_path = './data/top.png'
+model_path = "./expr/netCRNN_2_1000.pth"
+img_path = './data/demo.png'
 alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
 
 model = crnn.CRNN(32, 1, 37, 256)
@@ -32,7 +31,7 @@ image = Variable(image)
 model.eval()
 preds = model(image)
 
-datafram = pandas.DataFrame(preds.numpy())
+non_maxed = preds
 
 _, preds = preds.max(2)
 preds = preds.transpose(1, 0).contiguous().view(-1)
@@ -41,3 +40,5 @@ preds_size = Variable(torch.IntTensor([preds.size(0)]))
 raw_pred = converter.decode(preds.data, preds_size.data, raw=True)
 sim_pred = converter.decode(preds.data, preds_size.data, raw=False)
 print('%-20s => %-20s' % (raw_pred, sim_pred))
+
+print("Done")

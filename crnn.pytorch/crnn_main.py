@@ -19,7 +19,7 @@ parser.add_argument('--trainroot', help='path to dataset')
 parser.add_argument('--valroot', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
-parser.add_argument('--imgH', type=int, default=32, help='the height of the input image to network')
+parser.add_argument('--imgH', type=int, default=32, help='the height of the input vto network')
 parser.add_argument('--imgW', type=int, default=100, help='the width of the input image to network')
 parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden state')
 parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
@@ -27,13 +27,13 @@ parser.add_argument('--lr', type=float, default=0.01, help='learning rate for Cr
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
-parser.add_argument('--crnn', default='', help="path to crnn (to continue training)")
+parser.add_argument('--crnn', default='data/crnn.pth', help="path to crnn (to continue training)")
 parser.add_argument('--alphabet', type=str, default='0123456789abcdefghijklmnopqrstuvwxyz')
 parser.add_argument('--experiment', default=None, help='Where to store samples and models')
-parser.add_argument('--displayInterval', type=int, default=500, help='Interval to be displayed')
+parser.add_argument('--displayInterval', type=int, default=100, help='Interval to be displayed')
 parser.add_argument('--n_test_disp', type=int, default=10, help='Number of samples to display when test')
-parser.add_argument('--valInterval', type=int, default=500, help='Interval to be displayed')
-parser.add_argument('--saveInterval', type=int, default=500, help='Interval to be displayed')
+parser.add_argument('--valInterval', type=int, default=100, help='Interval to be displayed')
+parser.add_argument('--saveInterval', type=int, default=100, help='Interval to be displayed')
 parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
 parser.add_argument('--adadelta', action='store_true', help='Whether to use adadelta (default is rmsprop)')
 parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
@@ -75,7 +75,6 @@ test_dataset = dataset.hwrDataset(mode="test", transform=dataset.resizeNormalize
 nclass = len(opt.alphabet) + 1
 nc = 1
 
-converter = utils.strLabelConverter(opt.alphabet)
 criterion = CTCLoss()
 
 
@@ -95,6 +94,8 @@ if opt.crnn != '':
     print('loading pretrained model from %s' % opt.crnn)
     crnn.load_state_dict(torch.load(opt.crnn))
 print(crnn)
+
+# TODO make this central
 
 image = torch.FloatTensor(opt.batchSize, 3, opt.imgH, opt.imgH)
 text = torch.IntTensor(opt.batchSize * 5)
@@ -155,7 +156,7 @@ def val(net, dataset, criterion, max_iter=100):
         loss_avg.add(cost)
 
         _, preds = preds.max(2)
-        preds = preds.squeeze(2)
+        # preds = preds.squeeze(2)
         preds = preds.transpose(1, 0).contiguous().view(-1)
         sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
         for pred, target in zip(sim_preds, cpu_texts):
@@ -168,24 +169,6 @@ def val(net, dataset, criterion, max_iter=100):
 
     accuracy = n_correct / float(max_iter * opt.batchSize)
     print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
-
-
-def trainBatch(net, criterion, optimizer):
-    data = train_iter.next()
-    cpu_images, cpu_texts = data
-    batch_size = cpu_images.size(0)
-    utils.loadData(image, cpu_images)
-    t, l = converter.encode(cpu_texts)
-    utils.loadData(text, t)
-    utils.loadData(length, l)
-
-    preds = crnn(image)
-    preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
-    cost = criterion(preds, text, preds_size, length) / batch_size
-    crnn.zero_grad()
-    cost.backward()
-    optimizer.step()
-    return cost
 
 
 for epoch in range(opt.niter):
@@ -206,7 +189,10 @@ for epoch in range(opt.niter):
             loss_avg.reset()
 
         if i % opt.valInterval == 0:
-            val(crnn, test_dataset, criterion)
+            try:
+                val(crnn, test_dataset, criterion)
+            except Exception as e:
+                print(e)
 
         # do checkpointing
         if i % opt.saveInterval == 0:
