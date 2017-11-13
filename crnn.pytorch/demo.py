@@ -6,6 +6,7 @@ from PIL import Image
 
 import models.crnn as crnn
 
+
 # model_path = './data/crnn.pth'
 
 model_path = "./expr/netCRNN_2_1000.pth"

@@ -88,15 +88,13 @@ class hwrDataset(Dataset):
 
         for line in open("./data/words_gt.txt", "r").readlines():
             parts = line.split(" ")
+            if parts[0] in name_to_file:
+                gt = " ".join(parts[8:]).rstrip("\n")
 
-            gt = " ".join(parts[8:]).rstrip("\n")
-
-            processed_gt = "".join([k for k in gt.lower() if k in alphabet ])
-
-            # TODO validate gt
-
-            if parts[0] in name_to_file and len(processed_gt) > 0:
-                rows.append([parts[0], name_to_file[parts[0]], processed_gt])
+                # Filters out characters not in the alphabet.
+                processed_gt = "".join([k for k in gt.lower() if k in alphabet])
+                if len(processed_gt) > 0:
+                    rows.append([parts[0], name_to_file[parts[0]], processed_gt])
 
         if mode == "train":
             self.data = pd.DataFrame(rows[:int(len(rows) * train_threshold)], columns=["name", "path", "groundtruth"])
