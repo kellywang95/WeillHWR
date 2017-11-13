@@ -15,13 +15,17 @@ def train_batch(net, criterion, optimizer, train_iter, opt, converter):
     cpu_images, cpu_texts = data
     batch_size = cpu_images.size(0)
     utils.loadData(image, cpu_images)
-    t, l = converter.encode(cpu_texts)
+    t, l = converter.encode(cpu_texts) #Todo is this conversion correct?
+
+    text = Variable(text)
+    length = Variable(length)
+
     utils.loadData(text, t)
     utils.loadData(length, l)
 
-    preds = net(image)
+    preds = net(image) #todo average time of run?
     preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
-    cost = criterion(preds, text, preds_size, length) / batch_size
+    cost = criterion(preds, text, preds_size, length) / batch_size #TODO what is this criterion
     net.zero_grad()
     cost.backward()
     optimizer.step()

@@ -129,7 +129,6 @@ def main(opt):
             dataset, shuffle=True, batch_size=opt.batchSize, num_workers=int(opt.workers))
         val_iter = iter(data_loader)
 
-        i = 0
         n_correct = 0
         loss_avg = utils.averager()
 
@@ -152,7 +151,7 @@ def main(opt):
             _, preds = preds.max(2)
             # preds = preds.squeeze(2)
             preds = preds.transpose(1, 0).contiguous().view(-1)
-            sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
+            sim_preds = converter.decode(preds.data, preds_size.data, raw=False)# Todo read this.
             for pred, target in zip(sim_preds, cpu_texts):
                 if pred == target.lower():
                     n_correct += 1
@@ -163,7 +162,6 @@ def main(opt):
 
         accuracy = n_correct / float(max_iter * opt.batchSize)
         print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
-
 
     for epoch in range(opt.niter):
         train_iter = iter(train_loader)
