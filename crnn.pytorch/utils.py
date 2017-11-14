@@ -5,6 +5,14 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import collections
+import shutil
+from os.path import join
+
+
+def save_checkpoint(state, is_best, filename, path):
+    torch.save(state, filename)
+    if is_best:
+        shutil.copyfile(filename, join(path, 'model_best.pth.tar'))
 
 
 class strLabelConverter(object):
@@ -40,15 +48,14 @@ class strLabelConverter(object):
             torch.IntTensor [n]: length of each text.
         """
         if isinstance(text, str):
-            text = [
-                self.dict[char.lower() if self._ignore_case else char]
-                for char in text
-            ]
+            text = [self.dict[char.lower() if self._ignore_case else char] for char in text]
             length = [len(text)]
         elif isinstance(text, collections.Iterable):
             length = [len(s) for s in text]
             text = ''.join(text)
+            # Calls the non-batch variation
             text, _ = self.encode(text)
+
         return (torch.IntTensor(text), torch.IntTensor(length))
 
     def decode(self, t, length, raw=False):
@@ -68,6 +75,7 @@ class strLabelConverter(object):
             length = length[0]
             assert t.numel() == length, "text with length: {} does not match declared length: {}".format(t.numel(), length)
             if raw:
+                # returns '-' for the 0th index as 'i - 1' is '-'
                 return ''.join([self.alphabet[i - 1] for i in t])
             else:
                 char_list = []
@@ -82,9 +90,7 @@ class strLabelConverter(object):
             index = 0
             for i in range(length.numel()):
                 l = length[i]
-                texts.append(
-                    self.decode(
-                        t[index:index + l], torch.IntTensor([l]), raw=raw))
+                texts.append(self.decode(t[index:index + l], torch.IntTensor([l]), raw=raw))
                 index += l
             return texts
 

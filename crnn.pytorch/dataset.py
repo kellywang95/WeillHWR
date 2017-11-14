@@ -76,7 +76,7 @@ class hwrDataset(Dataset):
 
     def __init__(self, root="./data/words/*/*/*.png", mode="train", transform=None, target_transform=None):
         alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
-        train_threshold = 0.7
+        train_threshold = 0.75
         files = glob(root)
 
         name_to_file = {}

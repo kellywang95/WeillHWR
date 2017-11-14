@@ -1,40 +1,37 @@
 from __future__ import print_function
+
 import argparse
+import datetime
+import os
 import random
+
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
-from torch.autograd import Variable
-import numpy as np
 from warpctc_pytorch import CTCLoss
-import os
-import utils
+
 import dataset
-
+import utils
+from model_code import train_batch, val_batch
 from models import crnn as crnn_model
-
-from model_code import train_batch
-
 
 # TODO - Note from the repo. Construct dataset following origin guide.
 # For training with variable length, please sort the image according to the text length.
 # first point - How do we do it now?
 # easy change to other thing?
 
-# Why did our model train without this?
 
 def main(opt):
-    print(opt)
+    print("Arguments are : " + str(opt))
 
     if opt.experiment is None:
         opt.experiment = 'expr'
-
     os.system('mkdir {0}'.format(opt.experiment))
 
-    # Why is this?
+    # Why do we use this?
     opt.manualSeed = random.randint(1, 10000)  # fix seed
-
     print("Random Seed: ", opt.manualSeed)
     random.seed(opt.manualSeed)
     np.random.seed(opt.manualSeed)
@@ -44,20 +41,19 @@ def main(opt):
 
     if torch.cuda.is_available() and not opt.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+        opt.cuda = True
+        print('Set Cuda to true.')
 
     train_dataset = dataset.hwrDataset(mode="train")
     assert train_dataset
-    # if not opt.random_sample:
-    #     sampler = dataset.randomSequentialSampler(train_dataset, opt.batchSize)
-    # else:
-    #     sampler = None
+
+    # The shuffle needs to be false when the sizing has been done.
+
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=opt.batchSize,
-        shuffle=True,
+        shuffle=False,
         num_workers=int(opt.workers),
         collate_fn=dataset.alignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio=True))
-    # test_dataset = dataset.lmdbDataset(
-    #     root=opt.valroot, transform=dataset.resizeNormalize((100, 32)))
 
     test_dataset = dataset.hwrDataset(mode="test", transform=dataset.resizeNormalize((100, 32)))
 
@@ -77,36 +73,20 @@ def main(opt):
 
     crnn = crnn_model.CRNN(opt.imgH, nc, nclass, opt.nh)
     crnn.apply(weights_init)
-    if opt.crnn != '':
-        print('loading pretrained model from %s' % opt.crnn)
-        crnn.load_state_dict(torch.load(opt.crnn))
-    print(crnn)
-
-    # TODO make this central
-
-    image = torch.FloatTensor(opt.batchSize, 3, opt.imgH, opt.imgH)
-    text = torch.IntTensor(opt.batchSize * 5)
-    length = torch.IntTensor(opt.batchSize)
 
     if opt.cuda:
         crnn.cuda()
         crnn = torch.nn.DataParallel(crnn, device_ids=range(opt.ngpu))
-        image = image.cuda()
         criterion = criterion.cuda()
 
-    image = Variable(image)
-    text = Variable(text)
-    length = Variable(length)
+    if opt.crnn != '':
+        print('Loading pretrained model from %s' % opt.crnn)
+        crnn.load_state_dict(torch.load(opt.crnn))
 
-    # TODO what is this, read this.
-    # loss averager
+    # Read this.
     loss_avg = utils.averager()
 
-    # Todo default is RMS Prop. I wonder why?
-    # setup optimizer
-
-    #Following the paper's recommendation
-
+    # Following the paper's recommendation, using adaDelta
     opt.adadelta = True
     if opt.adam:
         optimizer = optim.Adam(crnn.parameters(), lr=opt.lr,
@@ -118,51 +98,7 @@ def main(opt):
 
     converter = utils.strLabelConverter(opt.alphabet)
 
-    def val(net, dataset, criterion, max_iter=100):
-        print('Start val')
-
-        for p in crnn.parameters():
-            p.requires_grad = False
-
-        net.eval()
-        data_loader = torch.utils.data.DataLoader(
-            dataset, shuffle=True, batch_size=opt.batchSize, num_workers=int(opt.workers))
-        val_iter = iter(data_loader)
-
-        n_correct = 0
-        loss_avg = utils.averager()
-
-        max_iter = min(max_iter, len(data_loader))
-        for i in range(max_iter):
-            print("Is 'i' jumping two values? i == " + str(i))
-            data = val_iter.next()
-            i += 1
-            cpu_images, cpu_texts = data
-            batch_size = cpu_images.size(0)
-            utils.loadData(image, cpu_images)
-            t, l = converter.encode(cpu_texts)
-            utils.loadData(text, t)
-            utils.loadData(length, l)
-
-            preds = crnn(image)
-            preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
-            cost = criterion(preds, text, preds_size, length) / batch_size
-            loss_avg.add(cost)
-
-            _, preds = preds.max(2)# todo where is the output size set to 26? Empirically it is.
-            # preds = preds.squeeze(2)
-            preds = preds.transpose(1, 0).contiguous().view(-1)
-            sim_preds = converter.decode(preds.data, preds_size.data, raw=False)# Todo read this.
-            for pred, target in zip(sim_preds, cpu_texts):
-                if pred == target.lower():
-                    n_correct += 1
-
-        raw_preds = converter.decode(preds.data, preds_size.data, raw=True)[:opt.n_test_disp]
-        for raw_pred, pred, gt in zip(raw_preds, sim_preds, cpu_texts):
-            print('%-20s => %-20s, gt: %-20s' % (raw_pred, pred, gt))
-
-        accuracy = n_correct / float(max_iter * opt.batchSize)
-        print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
+    best_val_accuracy = 0
 
     for epoch in range(opt.niter):
         train_iter = iter(train_loader)
@@ -183,14 +119,24 @@ def main(opt):
 
             if i % opt.valInterval == 0:
                 try:
-                    val(crnn, test_dataset, criterion)
+                    val_loss_avg, accuracy = val_batch(crnn, opt, test_dataset, converter, criterion)
+
+                    state = {
+                        'epoch': epoch + 1,
+                        'iter': i,
+                        'state': crnn.state_dict(),
+                        'accuracy': accuracy,
+                        'val_loss_avg': val_loss_avg,
+                    }
+                    utils.save_checkpoint(state, accuracy > best_val_accuracy,
+                                          '{0}/netCRNN_{1}_{2}.pth'.format(opt.experiment, epoch, i), opt.experiment)
+
+                    if accuracy > best_val_accuracy:
+                        best_val_accuracy = accuracy
+
                 except Exception as e:
                     print(e)
 
-            # do checkpointing
-            if i % opt.saveInterval == 0:
-                torch.save(
-                    crnn.state_dict(), '{0}/netCRNN_{1}_{2}.pth'.format(opt.experiment, epoch, i))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -211,13 +157,14 @@ if __name__ == '__main__':
     parser.add_argument('--experiment', default=None, help='Where to store samples and models')
     parser.add_argument('--displayInterval', type=int, default=100, help='Interval to be displayed')
     parser.add_argument('--n_test_disp', type=int, default=10, help='Number of samples to display when test')
-    parser.add_argument('--valInterval', type=int, default=100, help='Interval to be displayed')
-    parser.add_argument('--saveInterval', type=int, default=100, help='Interval to be displayed')
+    parser.add_argument('--valInterval', type=int, default=300, help='Interval to be displayed')
     parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
     parser.add_argument('--adadelta', action='store_true', help='Whether to use adadelta (default is rmsprop)')
     parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
     parser.add_argument('--random_sample', action='store_true',
                         help='whether to sample the dataset with random sampler')
     opt = parser.parse_args()
+
+    opt.experiment = "iam_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
 
     main(opt)
