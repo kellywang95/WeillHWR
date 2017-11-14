@@ -17,13 +17,15 @@ import utils
 from model_code import train_batch, val_batch
 from models import crnn as crnn_model
 
+import json
+
 # TODO - Note from the repo. Construct dataset following origin guide.
 # For training with variable length, please sort the image according to the text length.
 # first point - How do we do it now?
 # easy change to other thing?
 
 
-def main(opt):
+def main(opt, case):
     print("Arguments are : " + str(opt))
 
     if opt.experiment is None:
@@ -41,8 +43,9 @@ def main(opt):
 
     if torch.cuda.is_available() and not opt.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+
         opt.cuda = True
-        print('Set Cuda to true.')
+        print('Set CUDA to true.')
 
     train_dataset = dataset.hwrDataset(mode="train")
     assert train_dataset
@@ -74,23 +77,35 @@ def main(opt):
     crnn = crnn_model.CRNN(opt.imgH, nc, nclass, opt.nh)
     crnn.apply(weights_init)
 
-    if opt.cuda:
+    if opt.cuda and case != 'adam_plus_copied_from_laptop':
         crnn.cuda()
         crnn = torch.nn.DataParallel(crnn, device_ids=range(opt.ngpu))
         criterion = criterion.cuda()
 
     if opt.crnn != '':
-        print('Loading pretrained model from %s' % opt.crnn)
-        crnn.load_state_dict(torch.load(opt.crnn))
+
+        print('Loading pre-trained model from %s' % opt.crnn)
+        loaded_model = torch.load(opt.crnn)
+
+        if case == 'adam_plus_copied_from_laptop':
+            print("Assuming model was saved in rudementary fashion")
+            crnn.load_state_dict(loaded_model)
+            crnn.cuda()
+            crnn = torch.nn.DataParallel(crnn, device_ids=range(opt.ngpu))
+            criterion = criterion.cuda()
+            start_epoch = 3
+        else:
+            print("Loaded model accuracy: " + str(loaded_model['accuracy']))
+            print("Loaded model epoch: " + str(loaded_model['epoch']))
+            start_epoch = loaded_model['epoch']
+            crnn.load_state_dict(loaded_model['state'])
 
     # Read this.
     loss_avg = utils.averager()
 
-    # Following the paper's recommendation, using adaDelta
-    opt.adadelta = True
+    # If following the paper's recommendation, using AdaDelta
     if opt.adam:
-        optimizer = optim.Adam(crnn.parameters(), lr=opt.lr,
-                               betas=(opt.beta1, 0.999))
+        optimizer = optim.Adam(crnn.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
     elif opt.adadelta:
         optimizer = optim.Adadelta(crnn.parameters(), lr=opt.lr)
     else:
@@ -100,7 +115,7 @@ def main(opt):
 
     best_val_accuracy = 0
 
-    for epoch in range(opt.niter):
+    for epoch in range(start_epoch, opt.niter):
         train_iter = iter(train_loader)
         i = 0
         while i < len(train_loader):
@@ -121,15 +136,16 @@ def main(opt):
                 try:
                     val_loss_avg, accuracy = val_batch(crnn, opt, test_dataset, converter, criterion)
 
-                    state = {
+                    model_state = {
                         'epoch': epoch + 1,
                         'iter': i,
                         'state': crnn.state_dict(),
                         'accuracy': accuracy,
                         'val_loss_avg': val_loss_avg,
                     }
-                    utils.save_checkpoint(state, accuracy > best_val_accuracy,
-                                          '{0}/netCRNN_{1}_{2}.pth'.format(opt.experiment, epoch, i), opt.experiment)
+                    utils.save_checkpoint(model_state, accuracy > best_val_accuracy,
+                                          '{0}/netCRNN_{1}_{2}_{3}.pth'.format(opt.experiment, epoch, i, accuracy),
+                                          opt.experiment)
 
                     if accuracy > best_val_accuracy:
                         best_val_accuracy = accuracy
@@ -147,17 +163,17 @@ if __name__ == '__main__':
     parser.add_argument('--imgH', type=int, default=32, help='the height of the input vto network')
     parser.add_argument('--imgW', type=int, default=100, help='the width of the input image to network')
     parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden state')
-    parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
+    parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
     parser.add_argument('--lr', type=float, default=0.01, help='learning rate for Critic, default=0.00005')
     parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
     parser.add_argument('--cuda', action='store_true', help='enables cuda')
     parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
-    parser.add_argument('--crnn', default='data/crnn.pth', help="path to crnn (to continue training)")
+    parser.add_argument('--crnn', default='', help="path to crnn (to continue training)")
     parser.add_argument('--alphabet', type=str, default='0123456789abcdefghijklmnopqrstuvwxyz')
     parser.add_argument('--experiment', default=None, help='Where to store samples and models')
-    parser.add_argument('--displayInterval', type=int, default=100, help='Interval to be displayed')
+    parser.add_argument('--displayInterval', type=int, default=50, help='Interval to be displayed')
     parser.add_argument('--n_test_disp', type=int, default=10, help='Number of samples to display when test')
-    parser.add_argument('--valInterval', type=int, default=300, help='Interval to be displayed')
+    parser.add_argument('--valInterval', type=int, default=500, help='Interval to be displayed')
     parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
     parser.add_argument('--adadelta', action='store_true', help='Whether to use adadelta (default is rmsprop)')
     parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
@@ -165,6 +181,23 @@ if __name__ == '__main__':
                         help='whether to sample the dataset with random sampler')
     opt = parser.parse_args()
 
-    opt.experiment = "iam_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+    opt.adadelta = True
 
-    main(opt)
+    case = "adam_plus_copied_from_laptop"
+    # case = "continue_adadelta"
+
+    if case == "adam_plus_copied_from_laptop":
+        opt.adam = True
+        opt.adadelta = False
+        opt.crnn = 'trained_models/pretrained_from_crnn_netCRNN_4_1000_47_5.pth'
+
+    elif case == "continue_adadelta":
+        opt.crnn = 'iam/continue_adadelta_2017_11_14_18_24/model_best.pth.tar'
+
+    experiment_start_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+    opt.experiment = os.path.join("iam", case + "_" + experiment_start_time)
+
+    os.system('mkdir {0}'.format(opt.experiment))
+    json.dump(vars(opt), open(os.path.join(opt.experiment, experiment_start_time + "arguments.json"), "w"))
+
+    main(opt, case)

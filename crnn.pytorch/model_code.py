@@ -29,7 +29,6 @@ def val_batch(net, opt, dataset, converter, criterion, max_iter=100):
 
     max_iter = min(max_iter, len(data_loader))
     for i in range(max_iter):
-        print("Is 'i' jumping two values? i == " + str(i))
         data = val_iter.next()
         i += 1
         cpu_images, cpu_texts = data
@@ -47,7 +46,7 @@ def val_batch(net, opt, dataset, converter, criterion, max_iter=100):
         _, preds = preds.max(2)  # todo where is the output size set to 26? Empirically it is.
         # preds = preds.squeeze(2)
         preds = preds.transpose(1, 0).contiguous().view(-1)
-        sim_preds = converter.decode(preds.data, preds_size.data, raw=False)  # Todo read this.
+        sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
         for pred, target in zip(sim_preds, cpu_texts):
             if pred == target.lower():
                 n_correct += 1
@@ -63,7 +62,6 @@ def val_batch(net, opt, dataset, converter, criterion, max_iter=100):
 
 
 def train_batch(net, criterion, optimizer, train_iter, opt, converter):
-    print('Starting new Train batch')
 
     image = torch.FloatTensor(opt.batchSize, 3, opt.imgH, opt.imgH)
     if opt.cuda:
@@ -80,9 +78,6 @@ def train_batch(net, criterion, optimizer, train_iter, opt, converter):
     batch_size = cpu_images.size(0)
     utils.loadData(image, cpu_images)
     t, l = converter.encode(cpu_texts) #Todo is this conversion correct?
-
-    text = Variable(text)
-    length = Variable(length)
 
     utils.loadData(text, t)
     utils.loadData(length, l)

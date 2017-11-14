@@ -9,9 +9,10 @@ import shutil
 from os.path import join
 
 
-def save_checkpoint(state, is_best, filename, path):
-    torch.save(state, filename)
+def save_checkpoint(model_state, is_best, filename, path):
+    torch.save(model_state, filename)
     if is_best:
+        "Overall accuracy improved to: " + str(model_state['accuracy'])
         shutil.copyfile(filename, join(path, 'model_best.pth.tar'))
 
 
