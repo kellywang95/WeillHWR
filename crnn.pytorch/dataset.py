@@ -2,21 +2,20 @@
 # encoding: utf-8
 
 import random
-import torch
-from torch.utils.data import Dataset
-from torch.utils.data import sampler
-import torchvision.transforms as transforms
-# import lmdb
-import six
 import sys
-from PIL import Image
-import numpy as np
-
-import pandas as pd
 from glob import glob
 from os.path import basename
+from os.path import join
 
-from sklearn.model_selection import train_test_split
+import numpy as np
+import pandas as pd
+# import lmdb
+import six
+import torch
+import torchvision.transforms as transforms
+from PIL import Image
+from torch.utils.data import Dataset
+from torch.utils.data import sampler
 
 
 class lmdbDataset(Dataset):
@@ -73,19 +72,29 @@ class lmdbDataset(Dataset):
 
 
 class hwrDataset(Dataset):
-
-    def __init__(self, root="./data/words/*/*/*.png", mode="train", transform=None, target_transform=None):
+    def __init__(self, root="./data/words/*/*/*.png", mode="train", transform=None, target_transform=None,
+                 return_index=False, extra_path=''):
+        self.return_index = return_index
         alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
         train_threshold = 0.75
-        files = glob(root)
+
+        if return_index:
+            assert extra_path != '' and mode == 'test', 'Returns index in run time only.'
+
+            train_threshold = 0.00
+            root = join('./data/words/', extra_path, '*.png')
+            files = sorted(glob(root))
+            print('Files, after order ' + str(files))
+        else:
+            files = glob(root)
 
         name_to_file = {}
-
         rows = []
 
         for file_name in files:
             name_to_file[basename(file_name).rstrip(".png")] = file_name
 
+        # Reduce the time it takes for this if needed.
         for line in open("./data/words_gt.txt", "r").readlines():
             parts = line.split(" ")
             if parts[0] in name_to_file:
@@ -128,6 +137,9 @@ class hwrDataset(Dataset):
 
         if self.target_transform is not None:
             label = self.target_transform(label)
+
+        if self.return_index:
+            return img, label, index
 
         return (img, label)
 

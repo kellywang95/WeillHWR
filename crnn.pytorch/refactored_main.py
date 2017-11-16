@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import argparse
 import datetime
-import os
+import os, sys
 import random
 
 import numpy as np
@@ -14,7 +14,7 @@ from warpctc_pytorch import CTCLoss
 
 import dataset
 import utils
-from model_code import train_batch, val_batch
+from model_code import train_batch, val_batch, run_net_batch
 from models import crnn as crnn_model
 
 import json
@@ -23,6 +23,65 @@ import json
 # For training with variable length, please sort the image according to the text length.
 # first point - How do we do it now?
 # easy change to other thing?
+
+
+def load_trained_crnn_for_eval(opt):
+    opt.crnn = 'trained_models/netCRNN_43_500_0.667363636364.pth'
+    opt.batchSize = 20
+
+    cudnn.benchmark = True
+
+    nclass = len(opt.alphabet) + 1
+    nc = 1
+
+    crnn = crnn_model.CRNN(opt.imgH, nc, nclass, opt.nh)
+
+    if opt.crnn == '':
+        raise Exception("Can't validate if you won't give me a model")
+
+    print('Loading pre-trained model from %s' % opt.crnn)
+    loaded_model = torch.load(opt.crnn, map_location=lambda storage, loc: storage)
+
+    print("Loaded model accuracy: " + str(loaded_model['accuracy']))
+    print("Loaded model epoch: " + str(loaded_model['epoch']))
+    loaded_state_dict = loaded_model['state']
+
+    new_net_state = crnn.state_dict()
+
+    for param_name in loaded_state_dict:
+        new_name = param_name[7:]
+        if new_name in new_net_state:
+            new_net_state[new_name] = loaded_state_dict[param_name]
+
+    crnn.load_state_dict(new_net_state)
+
+    for p in crnn.parameters():
+        p.requires_grad = False
+
+    crnn.eval()
+
+    return crnn, utils.strLabelConverter(opt.alphabet), CTCLoss()
+
+
+def extract_result(opt, crnn, converter, extra_path):
+
+    test_dataset = dataset.hwrDataset(mode="test", transform=dataset.resizeNormalize((100, 32)),
+                                      return_index=True, extra_path=extra_path)
+
+    accuracy, predicted_list = run_net_batch(crnn, opt, test_dataset, converter)
+
+    sorted(predicted_list, key=lambda instance: instance.index)
+
+    return predicted_list
+
+
+def validate(opt, crnn, converter, criterion):
+    test_dataset = dataset.hwrDataset(mode="test", transform=dataset.resizeNormalize((100, 32)))
+
+    val_loss_avg, accuracy = val_batch(crnn, opt, test_dataset, converter, criterion)
+
+    print(accuracy)
+    print(val_loss_avg)
 
 
 def main(opt, case):
@@ -158,7 +217,7 @@ def main(opt, case):
                     print(e)
 
 
-if __name__ == '__main__':
+def get_parameters():
     parser = argparse.ArgumentParser()
     parser.add_argument('--trainroot', help='path to dataset')
     parser.add_argument('--valroot', help='path to dataset')
@@ -186,14 +245,18 @@ if __name__ == '__main__':
     parser.add_argument('--random_sample', action='store_true',
                         help='whether to sample the dataset with random sampler')
     opt = parser.parse_args()
-
     opt.adadelta = True
 
+    return opt
+
+
+# Note - Both Adam and RMS Prop have not performed well
+if __name__ == '__main__':
+    opt = get_parameters()
+
     case = "double_batch_scene_pretrained"
-
     case = "double_batch_adaGrad_from_adaDelta_which_pretrained_crnn"
-
-    # Note - Both Adam and RMS Prop have not performed well
+    case = "validate"
 
     if case == 'double_batch_adaGrad_from_adaDelta_which_pretrained_crnn':
         opt.crnn = 'iam/copied_from_laptop_2017_11_15_01_35/model_best.pth.tar'
@@ -205,6 +268,10 @@ if __name__ == '__main__':
         opt.crnn = 'trained_models/pretrained_crnn.pth'
         opt.uses_old_saving = True
         opt.batchSize = 110
+
+    elif case == "validate":
+        crnn, converter, criterion = load_trained_crnn_for_eval(opt)
+        sys.exit(1)
 
     experiment_start_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
     opt.experiment = os.path.join("iam", case + "_" + experiment_start_time)
