@@ -77,7 +77,7 @@ def main(opt, case):
     crnn = crnn_model.CRNN(opt.imgH, nc, nclass, opt.nh)
     crnn.apply(weights_init)
 
-    if opt.cuda and case != 'adam_plus_copied_from_laptop':
+    if opt.cuda and not opt.uses_old_saving:
         crnn.cuda()
         crnn = torch.nn.DataParallel(crnn, device_ids=range(opt.ngpu))
         criterion = criterion.cuda()
@@ -87,13 +87,14 @@ def main(opt, case):
         print('Loading pre-trained model from %s' % opt.crnn)
         loaded_model = torch.load(opt.crnn)
 
-        if case == 'adam_plus_copied_from_laptop':
+        if opt.uses_old_saving:
             print("Assuming model was saved in rudementary fashion")
             crnn.load_state_dict(loaded_model)
             crnn.cuda()
+
             crnn = torch.nn.DataParallel(crnn, device_ids=range(opt.ngpu))
             criterion = criterion.cuda()
-            start_epoch = 3
+            start_epoch = 0
         else:
             print("Loaded model accuracy: " + str(loaded_model['accuracy']))
             print("Loaded model epoch: " + str(loaded_model['epoch']))
@@ -108,6 +109,9 @@ def main(opt, case):
         optimizer = optim.Adam(crnn.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
     elif opt.adadelta:
         optimizer = optim.Adadelta(crnn.parameters(), lr=opt.lr)
+    elif opt.adagrad:
+        print("Using adagrad")
+        optimizer = optim.Adagrad(crnn.parameters(), lr=opt.lr)
     else:
         optimizer = optim.RMSprop(crnn.parameters(), lr=opt.lr)
 
@@ -129,7 +133,7 @@ def main(opt, case):
 
             if i % opt.displayInterval == 0:
                 print('[%d/%d][%d/%d] Loss: %f' %
-                      (epoch, opt.niter, i, len(train_loader), loss_avg.val()))
+                      (epoch, opt.niter, i, len(train_loader), loss_avg.val()) + " " + case)
                 loss_avg.reset()
 
             if i % opt.valInterval == 0:
@@ -163,7 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('--imgH', type=int, default=32, help='the height of the input vto network')
     parser.add_argument('--imgW', type=int, default=100, help='the width of the input image to network')
     parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden state')
-    parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
+    parser.add_argument('--niter', type=int, default=200, help='number of epochs to train for')
     parser.add_argument('--lr', type=float, default=0.01, help='learning rate for Critic, default=0.00005')
     parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
     parser.add_argument('--cuda', action='store_true', help='enables cuda')
@@ -176,23 +180,31 @@ if __name__ == '__main__':
     parser.add_argument('--valInterval', type=int, default=500, help='Interval to be displayed')
     parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
     parser.add_argument('--adadelta', action='store_true', help='Whether to use adadelta (default is rmsprop)')
+    parser.add_argument('--adagrad', action='store_true', help='Whether to use adadelta (default is rmsprop)')
     parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
+    parser.add_argument('--uses_old_saving', action='store_true', help='whether to keep ratio for image resize')
     parser.add_argument('--random_sample', action='store_true',
                         help='whether to sample the dataset with random sampler')
     opt = parser.parse_args()
 
     opt.adadelta = True
 
-    case = "adam_plus_copied_from_laptop"
-    # case = "continue_adadelta"
+    case = "double_batch_scene_pretrained"
 
-    if case == "adam_plus_copied_from_laptop":
-        opt.adam = True
+    case = "double_batch_adaGrad_from_adaDelta_which_pretrained_crnn"
+
+    # Note - Both Adam and RMS Prop have not performed well
+
+    if case == 'double_batch_adaGrad_from_adaDelta_which_pretrained_crnn':
+        opt.crnn = 'iam/copied_from_laptop_2017_11_15_01_35/model_best.pth.tar'
+        opt.adagrad = True
         opt.adadelta = False
-        opt.crnn = 'trained_models/pretrained_from_crnn_netCRNN_4_1000_47_5.pth'
+        opt.batchSize = 110
 
-    elif case == "continue_adadelta":
-        opt.crnn = 'iam/continue_adadelta_2017_11_14_18_24/model_best.pth.tar'
+    elif case == "double_batch_scene_pretrained":
+        opt.crnn = 'trained_models/pretrained_crnn.pth'
+        opt.uses_old_saving = True
+        opt.batchSize = 110
 
     experiment_start_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
     opt.experiment = os.path.join("iam", case + "_" + experiment_start_time)
