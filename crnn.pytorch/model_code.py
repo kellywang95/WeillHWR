@@ -19,7 +19,7 @@ class Prediction:
 
 
 def run_net_batch(net, opt, dataset, converter):
-    print('Starting new batch result')
+    # print('Starting new batch result')
 
     image = torch.FloatTensor(opt.batchSize, 3, opt.imgH, opt.imgH)
     if opt.cuda:
@@ -45,7 +45,6 @@ def run_net_batch(net, opt, dataset, converter):
         i += 1
 
         cpu_images, cpu_texts, data_indexes = data
-        print(data_indexes)
 
         batch_size = cpu_images.size(0)
         utils.loadData(image, cpu_images)
@@ -70,7 +69,7 @@ def run_net_batch(net, opt, dataset, converter):
                 n_correct += 1
 
     accuracy = n_correct / float(len(dataset))
-    print('Accuray: %f' % (accuracy))
+    # print('Accuracy: %f' % (accuracy))
 
     return accuracy, predicted_list
 

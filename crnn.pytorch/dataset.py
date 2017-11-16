@@ -84,7 +84,7 @@ class hwrDataset(Dataset):
             train_threshold = 0.00
             root = join('./data/words/', extra_path, '*.png')
             files = sorted(glob(root))
-            print('Files, after order ' + str(files))
+            # print('Files, after order ' + str(files))
         else:
             files = glob(root)
 

@@ -39,11 +39,11 @@ def load_trained_crnn_for_eval(opt):
     if opt.crnn == '':
         raise Exception("Can't validate if you won't give me a model")
 
-    print('Loading pre-trained model from %s' % opt.crnn)
+    # print('Loading pre-trained model from %s' % opt.crnn)
     loaded_model = torch.load(opt.crnn, map_location=lambda storage, loc: storage)
 
-    print("Loaded model accuracy: " + str(loaded_model['accuracy']))
-    print("Loaded model epoch: " + str(loaded_model['epoch']))
+    # print("Loaded model accuracy: " + str(loaded_model['accuracy']))
+    # print("Loaded model epoch: " + str(loaded_model['epoch']))
     loaded_state_dict = loaded_model['state']
 
     new_net_state = crnn.state_dict()

@@ -39,4 +39,4 @@ def extract_result(image_index):
 
 
 if __name__ == '__main__':
-    extract_result(2)
+    extract_result("2")
