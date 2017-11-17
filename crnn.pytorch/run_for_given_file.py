@@ -66,3 +66,9 @@ def extract_result(image_index):
 
 if __name__ == '__main__':
     print(get_most_relevant('wound, spinal, disease'))
+
+
+def check_creds(username, password):
+    # Check login creds
+    # For now, Proof of concept only
+    return username == "admin" and password == "admin"
