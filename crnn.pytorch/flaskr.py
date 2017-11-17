@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, \
-    render_template, flash
+    render_template, flash, jsonify
 
 import run_for_given_file
 
@@ -39,11 +39,12 @@ def image_txt():
 
 
 @app.route('/search_txt', methods=['POST'])
-def image_txt():
+def search_txt():
+    print(request.form)
     if 'keyword' not in request.form:
-        raise Exception("Send me the keyword!")
+        raise Exception("Send me the keywords!")
 
-    return 'Blah Blah Blah for now'
+    return jsonify(run_for_given_file.get_most_relevant(request.form['keyword'])[0])
 
 
 app.run()
