@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Hello, world!</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <link href="../static/styles/index.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+
+    <script type=text/javascript>
+        const api = "";
+        const imageEndpoint = api + "/image_txt";
+        var modal = document.getElementById('id01');
+
+
+        function transcribeDoc(image_id){
+            var id = image_id.charAt(image_id.length-1);
+            $.ajax({
+                url: imageEndpoint,
+                dataType: 'text',
+                type: 'POST',
+//                contentType: 'text',
+                data: {"index":id},
+                success:function (response) {
+                    console.log(response)
+                    $('div#text' + id).text(response);
+                }
+            });
+
+//            console.log('here');
+//            var data = $.getJSON( api + '/image_txt', {}, function(data) {
+//                $('p#prediction').text(data);
+//
+//            });
+//            return data;
+        }
+
+        var canvas;
+        var context;
+//
+//        function initialize() {
+////            fileUpload = document.getElementById('fileUpload');
+//            canvas  = document.getElementById('canvas');
+//            context = canvas.getContext("2d");
+//        }
+//
+//        function readImage() {
+//            if ( this.files && this.files[0] ) {
+//                var FR= new FileReader();
+//                FR.onload = function(e) {
+//                    var img = new Image();
+//                    img.src = e.target.result;
+//                    img.onload = function() {
+//                        ctx.drawImage(img, 0, 0, 512, 512);
+//                    };
+//                };
+//                FR.readAsDataURL( this.files[0] );
+//            }
+//        }
+//
+
+
+        function el(id){return document.getElementById(id);} // Get elem by ID
+
+        function readImage() {
+            if ( this.files && this.files[0] ) {
+                var FR= new FileReader();
+                FR.onload = function(e) {
+                    var img = new Image();
+                    img.addEventListener("load", function() {
+                        var hRatio = canvas.width  / img.width    ;
+                        var vRatio =  canvas.height / img.height  ;
+                        var ratio  = Math.min ( hRatio, vRatio );
+                        var centerShift_x = ( canvas.width - img.width*ratio ) / 2;
+                        var centerShift_y = ( canvas.height - img.height*ratio ) / 2;
+                        context.clearRect(0,0,canvas.width, canvas.height);
+                        context.drawImage(img, 0,0, img.width, img.height,
+                            centerShift_x,centerShift_y,img.width*ratio, img.height*ratio);
+                    });
+                    img.src = e.target.result;
+                };
+                FR.readAsDataURL( this.files[0] );
+            }
+        }
+
+
+
+        $(function() {
+//            $('img#image1').on('click', function(){
+//                transcribeDoc();
+//            });
+            el("fileUpload").addEventListener("change", readImage, false);
+            canvas  = el("canvas");
+            context = canvas.getContext("2d");
+
+            // When the user clicks anywhere outside of the modal, close it
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            };
+
+        });
+
+
+    </script>
+</head>
+<body>
+<!--<h1>Live Demo</h1>-->
+<div class="jumbotron text-center">
+    <a href="login.html"> <button type="button" class="btn btn-success">Login/Sign up</button></a>
+    <h1>Handwritten Documents Transcription</h1>
+    <p>Click on the documents below to get the transcribed text</p>
+
+</div>
+
+
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-5">
+            Document 1
+            <img src="../static/01.png" class="img-responsive" id="image1" onclick="transcribeDoc(this.id)" alt="...">
+        </div>
+        <div class="col-md-6" id="text1">
+            Body content
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-5">
+            Document 2
+            <img src="../static/02.png" class="img-responsive" id="image2" onclick="transcribeDoc(this.id)" alt="...">
+        </div>
+        <div class="col-md-6" id="text2">
+            Body content
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-5">
+            <input type='file' id="fileUpload" />
+            <canvas id="canvas" width="450" height="450" onclick="transcribeDoc('image3')"></canvas>
+        </div>
+        <div class="col-md-6" id="text3">
+            Predictions will be returned here
+        </div>
+    </div>
+</div>
+<!--width="900" height="600"-->
+<!--<div class = "container" style="border:1px solid black;">-->
+    <!--<h5> Transcribed Text </h5>-->
+    <!--<p id="prediction">Predictions will be returned here </p>-->
+<!--</div>-->
+
+<!--<div class = "container">-->
+    <!--<input type='file' id="fileUpload" />-->
+    <!--<canvas id="canvas" width="900" height="600"></canvas>-->
+<!--</div>-->
+
+
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<!--<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>-->
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>-->
+<!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>-->
+</body>
+</html>
+
