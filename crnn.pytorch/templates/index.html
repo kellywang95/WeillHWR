@@ -24,7 +24,8 @@
         function transcribeDoc(image_id){
             var id = image_id.charAt(image_id.length-1);
             var spinning_icon = '<i class="fa fa-spinner fa-spin" style="font-size:24px;" id="spinning"></i>';
-            $('div#text' + id).append(spinning_icon);
+            var tmp = '<p id ="waiting">Transcribing documents. This may take a while...</p>';
+            $('div#text' + id).append(spinning_icon,tmp);
 //            spinning_icon.style.display = 'block';
             $.ajax({
                 url: imageEndpoint,
@@ -35,6 +36,7 @@
                 success:function (response) {
                     console.log(response);
                     document.getElementById('spinning').remove();
+                    document.getElementById('waiting').remove();
                     $('div#text' + id).text(response);
 
 
@@ -94,7 +96,6 @@
         function processSearch(data){
             var fileName = data.name;
             var transcribedText = data.text;
-//            console.log(transcribedText)
             $('div#searchFileName').text(fileName);
             $('p#searchResult').text(transcribedText);
 
@@ -102,9 +103,6 @@
 
 
         $(function() {
-//            $('img#image1').on('click', function(){
-//                transcribeDoc();
-//            });
             el("fileUpload").addEventListener("change", readImage, false);
             canvas  = el("canvas");
             context = canvas.getContext("2d");
@@ -116,7 +114,7 @@
     </script>
 </head>
 <body>
-<!--<h1>Live Demo</h1>-->
+
 <div class="jumbotron text-center">
     <a href="login.html"> <button type="button" class="btn btn-success">Login/Sign up</button></a>
     <h1>Handwritten Documents Transcription</h1>
@@ -127,7 +125,7 @@
 
 
 <div class="container">
-    <div class="row">
+    <div class="row" style="padding-top: 10px">
         <div class="col-md-5">
             Document 1
             <img src="../static/01.png" class="img-responsive" id="image1" onclick="transcribeDoc(this.id)" alt="...">
@@ -136,7 +134,7 @@
             Body content
         </div>
     </div>
-    <div class="row">
+    <div class="row" style="padding-top: 10px">
         <div class="col-md-5">
             Document 2
             <img src="../static/02.png" class="img-responsive" id="image2" onclick="transcribeDoc(this.id)" alt="...">
@@ -145,10 +143,12 @@
             Body content
         </div>
     </div>
-    <div class="row">
+    <div class="row" style="padding-top: 10px">
         <div class="col-md-5">
             <input type='file' id="fileUpload" />
-            <canvas id="canvas" width="450" height="450" onclick="transcribeDoc('image3')"></canvas>
+            <canvas id="canvas" width="440" height="440" onclick="transcribeDoc('image3')" style="border: dashed; border-radius: 5px;border-color: #888888">
+                <!--<img src="../static/placeholder.png" class="img-responsive" id="placeholerImage" alt="...">-->
+            </canvas>
         </div>
         <div class="col-md-6" id="text3">
             Predictions will be returned here
