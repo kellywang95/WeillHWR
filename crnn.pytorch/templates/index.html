@@ -75,21 +75,30 @@
         }
 
         function searchKeywords(data){
-            var keywords = data.value;
-            console.log(keywords);
+            var keyword = data.value;
+            console.log(keyword);
             $.ajax({
                 url: '/search_txt',
                 dataType: 'text',
                 type: 'POST',
-                contentType: JSON,
-                data: keywords,
+//                contentType: 'application/json',
+                data:{"keyword":keyword},
                 success:function (response) {
                     console.log(response);
-                    $('p#searchResult').text(response);
+                    var jsonresult = $.parseJSON(response);
+                    processSearch(jsonresult);
                 }
             });
         }
 
+        function processSearch(data){
+            var fileName = data.name;
+            var transcribedText = data.text;
+//            console.log(transcribedText)
+            $('div#searchFileName').text(fileName);
+            $('p#searchResult').text(transcribedText);
+
+        }
 
 
         $(function() {
@@ -147,7 +156,10 @@
     </div>
 </div>
 
-<div class="container">
+<div class="container" style="background-color: #F5F3EE; padding-left: 5%; padding-top: 10px;">
+    <div class="row">
+        <h3>Search for keywords in our medical data set</h3>
+    </div>
     <div class="row">
         <div class="well">
             <div class="form-group">
@@ -158,12 +170,14 @@
         </div>
     </div>
     <div class="row">
-        <div class="col-md-6"></div>
+        <div class="col-md-4" id = "searchFileName"></div>
+            <!--<p id = "searchFileName"></p>-->
         <div class="col-md-6">
             <p id="searchResult"></p>
         </div>
 
     </div>
+
 </div>
 
 <!--<div class = "container">-->
