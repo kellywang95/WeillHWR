@@ -78,8 +78,9 @@ def extract_result(opt, crnn, converter, extra_path):
 def validate(opt, crnn, converter, criterion):
     test_dataset = dataset.hwrDataset(mode="test", transform=dataset.resizeNormalize((100, 32)))
 
-    val_loss_avg, accuracy = val_batch(crnn, opt, test_dataset, converter, criterion)
+    val_loss_avg, accuracy, corrected_accuracy = val_batch(crnn, opt, test_dataset, converter, criterion, full_val=True)
 
+    print(corrected_accuracy)
     print(accuracy)
     print(val_loss_avg)
 
@@ -271,6 +272,7 @@ if __name__ == '__main__':
 
     elif case == "validate":
         crnn, converter, criterion = load_trained_crnn_for_eval(opt)
+        validate(opt, crnn, converter, criterion)
         sys.exit(1)
 
     experiment_start_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")

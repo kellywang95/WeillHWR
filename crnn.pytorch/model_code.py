@@ -2,6 +2,8 @@ import utils
 import torch
 from torch.autograd import Variable
 
+from spell import correction
+
 
 class Prediction:
     def __init__(self, index, raw_pred, pred, correct, target):
@@ -74,7 +76,7 @@ def run_net_batch(net, opt, dataset, converter):
     return accuracy, predicted_list
 
 
-def val_batch(net, opt, dataset, converter, criterion, max_iter=100):
+def val_batch(net, opt, dataset, converter, criterion, max_iter=100, full_val=False):
     print('Starting new val batch')
 
     image = torch.FloatTensor(opt.batchSize, 3, opt.imgH, opt.imgH)
@@ -96,12 +98,14 @@ def val_batch(net, opt, dataset, converter, criterion, max_iter=100):
     val_iter = iter(data_loader)
 
     n_correct = 0
+    n_corrected_batch = 0
     loss_avg = utils.averager()
 
-    max_iter = min(max_iter, len(data_loader))
+    max_iter = len(data_loader) if full_val else min(max_iter, len(data_loader))
     for i in range(max_iter):
         data = val_iter.next()
         i += 1
+        print(i)
         cpu_images, cpu_texts = data
         batch_size = cpu_images.size(0)
         utils.loadData(image, cpu_images)
@@ -122,14 +126,20 @@ def val_batch(net, opt, dataset, converter, criterion, max_iter=100):
             if pred == target.lower():
                 n_correct += 1
 
+            if correction(pred).lower() == target.lower():
+                n_corrected_batch += 1
+
     raw_preds = converter.decode(preds.data, preds_size.data, raw=True)[:opt.n_test_disp]
     for raw_pred, pred, gt in zip(raw_preds, sim_preds, cpu_texts):
         print('%-20s => %-20s, gt: %-20s' % (raw_pred, pred, gt))
 
     accuracy = n_correct / float(max_iter * opt.batchSize)
-    print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
+    print('Test loss: %f, accuracy: %f' % (loss_avg.val(), accuracy))
 
-    return loss_avg.val(), accuracy
+    corrected_accuracy = n_corrected_batch / float(max_iter * opt.batchSize)
+    print('Accuracy: %f', corrected_accuracy)
+
+    return loss_avg.val(), accuracy, corrected_accuracy
 
 
 def train_batch(net, criterion, optimizer, train_iter, opt, converter):
