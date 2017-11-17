@@ -9,6 +9,8 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
     <link href="../static/styles/index.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://code.jquery.com/jquery-latest.js"></script>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
@@ -16,11 +18,14 @@
     <script type=text/javascript>
         const api = "";
         const imageEndpoint = api + "/image_txt";
-        var modal = document.getElementById('id01');
+//        var modal = document.getElementById('id01');
 
 
         function transcribeDoc(image_id){
             var id = image_id.charAt(image_id.length-1);
+            var spinning_icon = '<i class="fa fa-spinner fa-spin" style="font-size:24px;" id="spinning"></i>';
+            $('div#text' + id).append(spinning_icon);
+//            spinning_icon.style.display = 'block';
             $.ajax({
                 url: imageEndpoint,
                 dataType: 'text',
@@ -28,42 +33,22 @@
 //                contentType: 'text',
                 data: {"index":id},
                 success:function (response) {
-                    console.log(response)
+                    console.log(response);
+                    document.getElementById('spinning').remove();
                     $('div#text' + id).text(response);
+
+
                 }
             });
 
-//            console.log('here');
-//            var data = $.getJSON( api + '/image_txt', {}, function(data) {
-//                $('p#prediction').text(data);
-//
-//            });
-//            return data;
+
         }
+
+
 
         var canvas;
         var context;
-//
-//        function initialize() {
-////            fileUpload = document.getElementById('fileUpload');
-//            canvas  = document.getElementById('canvas');
-//            context = canvas.getContext("2d");
-//        }
-//
-//        function readImage() {
-//            if ( this.files && this.files[0] ) {
-//                var FR= new FileReader();
-//                FR.onload = function(e) {
-//                    var img = new Image();
-//                    img.src = e.target.result;
-//                    img.onload = function() {
-//                        ctx.drawImage(img, 0, 0, 512, 512);
-//                    };
-//                };
-//                FR.readAsDataURL( this.files[0] );
-//            }
-//        }
-//
+
 
 
         function el(id){return document.getElementById(id);} // Get elem by ID
@@ -89,6 +74,31 @@
             }
         }
 
+        function searchKeywords(data){
+            var keyword = data.value;
+            console.log(keyword);
+            $.ajax({
+                url: '/search_txt',
+                dataType: 'text',
+                type: 'POST',
+//                contentType: 'application/json',
+                data:{"keyword":keyword},
+                success:function (response) {
+                    console.log(response);
+                    var jsonresult = $.parseJSON(response);
+                    processSearch(jsonresult);
+                }
+            });
+        }
+
+        function processSearch(data){
+            var fileName = data.name;
+            var transcribedText = data.text;
+//            console.log(transcribedText)
+            $('div#searchFileName').text(fileName);
+            $('p#searchResult').text(transcribedText);
+
+        }
 
 
         $(function() {
@@ -99,15 +109,9 @@
             canvas  = el("canvas");
             context = canvas.getContext("2d");
 
-            // When the user clicks anywhere outside of the modal, close it
-            window.onclick = function(event) {
-                if (event.target == modal) {
-                    modal.style.display = "none";
-                }
-            };
+            $('.tt-query').css('background-color','#fff');
 
         });
-
 
     </script>
 </head>
@@ -151,11 +155,30 @@
         </div>
     </div>
 </div>
-<!--width="900" height="600"-->
-<!--<div class = "container" style="border:1px solid black;">-->
-    <!--<h5> Transcribed Text </h5>-->
-    <!--<p id="prediction">Predictions will be returned here </p>-->
-<!--</div>-->
+
+<div class="container" style="background-color: #F5F3EE; padding-left: 5%; padding-top: 10px;">
+    <div class="row">
+        <h3>Search for keywords in our medical data set</h3>
+    </div>
+    <div class="row">
+        <div class="well">
+            <div class="form-group">
+                <label>Search:</label>
+                <input class="form-control" id="query" placeholder="Start typing something to search..." type="text">
+            </div>
+            <button type="submit" class="btn btn-primary" onclick="searchKeywords(document.getElementById('query'))">Search</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4" id = "searchFileName"></div>
+            <!--<p id = "searchFileName"></p>-->
+        <div class="col-md-6">
+            <p id="searchResult"></p>
+        </div>
+
+    </div>
+
+</div>
 
 <!--<div class = "container">-->
     <!--<input type='file' id="fileUpload" />-->
