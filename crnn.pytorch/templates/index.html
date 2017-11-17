@@ -38,8 +38,6 @@
                     document.getElementById('spinning').remove();
                     document.getElementById('waiting').remove();
                     $('div#text' + id).text(response);
-
-
                 }
             });
 
@@ -95,8 +93,12 @@
 
         function processSearch(data){
             var fileName = data.name;
+            var imgName = fileName +'.png';
+            var imgComp = '<img src="../static/TranscriptionImages/' + imgName + '">';
+            console.log(imgComp)
             var transcribedText = data.text;
             $('div#searchFileName').text(fileName);
+            $('div#searchFileName').append(imgComp);
             $('p#searchResult').text(transcribedText);
 
         }
@@ -116,7 +118,7 @@
 <body>
 
 <div class="jumbotron text-center">
-    <a href="login.html"> <button type="button" class="btn btn-success">Login/Sign up</button></a>
+    <!--<a href="login.html"> <button type="button" class="btn btn-success">Login/Sign up</button></a>-->
     <h1>Handwritten Documents Transcription</h1>
     <p>Click on the documents below to get the transcribed text</p>
 
@@ -128,30 +130,52 @@
     <div class="row" style="padding-top: 10px">
         <div class="col-md-5">
             Document 1
-            <img src="../static/01.png" class="img-responsive" id="image1" onclick="transcribeDoc(this.id)" alt="...">
         </div>
-        <div class="col-md-6" id="text1">
-            Body content
+        <div class="col-md-7">
+            <p> Transcription result </p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-5">
+            <img src="../static/p01-174cropped.png" class="img-responsive" id="image1" onclick="transcribeDoc(this.id)" alt="...">
+        </div>
+        <div class="col-md-7" id="text1" style="border: solid; border-color: #888888; border-radius: 5px">
+            <p></p>
         </div>
     </div>
     <div class="row" style="padding-top: 10px">
         <div class="col-md-5">
             Document 2
-            <img src="../static/02.png" class="img-responsive" id="image2" onclick="transcribeDoc(this.id)" alt="...">
         </div>
-        <div class="col-md-6" id="text2">
-            Body content
+        <div class="col-md-7">
+            Transcription result
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-5">
+            <img src="../static/p02-000cropped.png" class="img-responsive" id="image2" onclick="transcribeDoc(this.id)" alt="...">
+        </div>
+        <div class="col-md-7" id="text2" style="border: solid; border-color: #888888; border-radius: 5px">
         </div>
     </div>
     <div class="row" style="padding-top: 10px">
         <div class="col-md-5">
             <input type='file' id="fileUpload" />
+            <!--<canvas id="canvas" width="440" height="440" onclick="transcribeDoc('image3')" style="border: dashed; border-radius: 5px;border-color: #888888">-->
+                <!--&lt;!&ndash;<img src="../static/placeholder.png" class="img-responsive" id="placeholerImage" alt="...">&ndash;&gt;-->
+            <!--</canvas>-->
+        </div>
+        <div class="col-md-7">
+            Predictions will be returned here
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-5">
             <canvas id="canvas" width="440" height="440" onclick="transcribeDoc('image3')" style="border: dashed; border-radius: 5px;border-color: #888888">
                 <!--<img src="../static/placeholder.png" class="img-responsive" id="placeholerImage" alt="...">-->
             </canvas>
         </div>
-        <div class="col-md-6" id="text3">
-            Predictions will be returned here
+        <div class="col-md-7" id="text3" style="border: solid; border-color: #888888; border-radius: 5px">
         </div>
     </div>
 </div>
@@ -175,7 +199,6 @@
         <div class="col-md-6">
             <p id="searchResult"></p>
         </div>
-
     </div>
 
 </div>
