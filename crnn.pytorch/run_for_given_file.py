@@ -15,7 +15,7 @@ opt = refactored_main.get_parameters()
 crnn, converter, _ = refactored_main.load_trained_crnn_for_eval(opt)
 
 # Image mapping
-image_mapping = {'1': 'a01/a01-003u/', '2': 'a01/a01-003/'}
+image_mapping = {'1': 'p01/p01-174', '2': 'p02/p02-000', '3': 'p06/p06-047'}
 
 # curate documents
 doc_to_text = defaultdict(int)
