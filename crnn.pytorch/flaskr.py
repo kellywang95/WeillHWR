@@ -20,25 +20,18 @@ def show_entries():
 # def show_home():
 #     return render_template('index.html')
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
-        if request.form['username'] != app.config['USERNAME']:
-            error = 'Invalid username'
-        elif request.form['password'] != app.config['PASSWORD']:
-            error = 'Invalid password'
-        else:
-            session['logged_in'] = True
-            flash('You were logged in')
-            return redirect(url_for('show_entries'))
+        # Not actually checking any
+        return redirect(url_for('show_entries'))
     return render_template('login.html', error=error)
 
 
 @app.route('/image_txt', methods=['POST'])
 def image_txt():
-    print(request.form)
-    print(request)
     if 'index' not in request.form:
         raise Exception("Send me the Index!")
 
@@ -52,5 +45,6 @@ def search_txt():
         raise Exception("Send me the keywords!")
 
     return jsonify(run_for_given_file.get_most_relevant(request.form['keyword'])[0])
+
 
 app.run()
