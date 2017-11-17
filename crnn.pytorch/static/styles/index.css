@@ -7,6 +7,7 @@ img {
     height: auto;
 }
 
+
 .jumbotron button {
     /*position: relative;*/
     position:absolute;
@@ -16,6 +17,17 @@ img {
     width: 150px;
     height: 25px;
 }
+
+
+.row > div {
+    margin-top:10px;
+    padding: 20px;
+    outline: 2px solid #ccc;
+    outline-offset: -10px;
+    -moz-outline-radius: 10px;
+    -webkit-outline-radius: 10px;
+}
+
 
 
 #imageList img{
