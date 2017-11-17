@@ -35,7 +35,7 @@ def search_txt():
     if 'keyword' not in request.form:
         raise Exception("Send me the keywords!")
 
-    return jsonify(run_for_given_file.get_most_relevant(request.form['keyword'])[0])
+    return jsonify(run_for_given_file.get_most_relevant(request.form['keyword'], 3))
 
 
 app.run()

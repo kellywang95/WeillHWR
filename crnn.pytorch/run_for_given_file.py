@@ -27,17 +27,27 @@ for file in glob('data/med_ground_truth/*.txt'):
     doc_to_text[file] = wordcount
 
 
-def get_most_relevant(keyword_string):
+def get_most_relevant(keyword_string, top_needed=3):
     keys = keyword_string.split(",")
 
     score_list = []
     for file in doc_to_text:
-        score_list.append((functools.reduce(operator.mul, [doc_to_text[file][keyword.strip()] for keyword in keys], 1), file))
+        file_score = functools.reduce(operator.mul, [doc_to_text[file][keyword.strip()] for keyword in keys], 1)
+        if file_score > 0:
+            score_list.append((file_score, file))
 
-    most_frequent = sorted(score_list, key=lambda x: x[0], reverse=True)[0]
+    if len(score_list) == 0:
+        return None, None
 
-    # Todo preprocessing on top of the test sent back?
-    return {'name': most_frequent[1].split("/")[-1].rstrip(" copy.txt"), 'text' : open(most_frequent[1]).read()} if most_frequent[0] != 0 else None, None
+    most_frequent = sorted(score_list, key=lambda x: x[0], reverse=True)
+    return [{'name': most_frequent[k][1].split("/")[-1].rstrip(" copy.txt"), 'text': open(most_frequent[k][1]).read()}
+            for k in range(min(top_needed, len(most_frequent)))]
+
+
+def check_creds(username, password):
+    # Check login creds
+    # For now, Proof of concept only
+    return username == "admin" and password == "admin"
 
 
 def extract_result(image_index):
@@ -65,10 +75,4 @@ def extract_result(image_index):
 
 
 if __name__ == '__main__':
-    print(get_most_relevant('wound, spinal, disease'))
-
-
-def check_creds(username, password):
-    # Check login creds
-    # For now, Proof of concept only
-    return username == "admin" and password == "admin"
+    print(get_most_relevant('disease, wound, spinal'))
