@@ -75,4 +75,5 @@ def extract_result(image_index):
 
 
 if __name__ == '__main__':
-    print(get_most_relevant('disease, wound, spinal'))
+    # print(get_most_relevant('disease, wound, spinal'))
+    print(extract_result('1'))
