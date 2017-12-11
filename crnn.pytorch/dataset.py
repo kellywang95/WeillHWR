@@ -82,8 +82,9 @@ class hwrDataset(Dataset):
             assert extra_path != '' and mode == 'test', 'Returns index in run time only.'
 
             train_threshold = 0.00
-            root = join('./data/words/', extra_path, '*.png')
+            root = extra_path
             files = sorted(glob(root))
+            print(files)
             # print('Files, after order ' + str(files))
         else:
             files = glob(root)

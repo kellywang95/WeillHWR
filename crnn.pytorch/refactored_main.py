@@ -64,6 +64,7 @@ def load_trained_crnn_for_eval(opt):
 
 
 def extract_result(opt, crnn, converter, extra_path):
+    print(extra_path)
 
     test_dataset = dataset.hwrDataset(mode="test", transform=dataset.resizeNormalize((100, 32)),
                                       return_index=True, extra_path=extra_path)
