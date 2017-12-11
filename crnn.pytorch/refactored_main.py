@@ -26,6 +26,7 @@ import json
 
 
 def load_trained_crnn_for_eval(opt):
+    # opt.crnn = '/Users/rohuntripathi/Course_Product_Studio/WeillHWR/crnn.pytorch/trained_models/netCRNN_43_500_0.667363636364.pth'
     opt.crnn = 'trained_models/netCRNN_43_500_0.667363636364.pth'
     opt.batchSize = 20
 

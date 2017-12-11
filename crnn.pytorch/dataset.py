@@ -96,6 +96,7 @@ class hwrDataset(Dataset):
             name_to_file[basename(file_name).rstrip(".png")] = file_name
 
         # Reduce the time it takes for this if needed.
+        # for line in open("/Users/rohuntripathi/Course_Product_Studio/WeillHWR/crnn.pytorch/data/words_gt.txt", "r").readlines():
         for line in open("./data/words_gt.txt", "r").readlines():
             parts = line.split(" ")
             if parts[0] in name_to_file:
@@ -116,12 +117,10 @@ class hwrDataset(Dataset):
         self.target_transform = target_transform
 
     def __len__(self):
-        return int(self.data.__len__() - 1)
+        return int(self.data.__len__())
 
     def __getitem__(self, index):
         assert index <= len(self), 'index range error'
-
-        index += 1
 
         try:
             img = Image.open(list(self.data.iloc[[index]].path)[0]).convert('L')
@@ -139,8 +138,10 @@ class hwrDataset(Dataset):
         if self.target_transform is not None:
             label = self.target_transform(label)
 
+        index += 1
+
         if self.return_index:
-            return img, label, index
+            return img, label, index-1
 
         return (img, label)
 

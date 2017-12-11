@@ -63,6 +63,10 @@ def run_net_batch(net, opt, dataset, converter):
         sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
         raw_preds = converter.decode(preds.data, preds_size.data, raw=True)
 
+        if isinstance(sim_preds, str):
+            sim_preds = [sim_preds]
+            raw_preds = [raw_preds]
+
         for pred, raw_pred, target, data_point_index in zip(sim_preds, raw_preds, cpu_texts, data_indexes):
 
             predicted_list.append(Prediction(data_point_index, raw_pred, pred, pred == target.lower(), target))
@@ -70,7 +74,7 @@ def run_net_batch(net, opt, dataset, converter):
             if pred.lower() == target.lower():
                 n_correct += 1
 
-    accuracy = n_correct / float(len(dataset))
+    accuracy = n_correct / float(len(dataset)) if len(dataset) != 0 else 0
     # print('Accuracy: %f' % (accuracy))
 
     return accuracy, predicted_list

@@ -5,6 +5,10 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 
 import run_for_given_file
 
+from PIL import Image
+from io import BytesIO
+import base64
+
 app = Flask(__name__)  # create the application instance :)
 
 
@@ -38,11 +42,15 @@ def search_txt():
     return jsonify(run_for_given_file.get_most_relevant(request.form['keyword'], 3))
 
 
-@app.route('/parse_single_word', methods=['POST'])
-def parse_txt():
-    if 'path' not in request.form:
-        raise Exception("Send me the path for this word!")
+@app.route('/single_image', methods=['POST'])
+def single_image():
+    if 'image' not in request.form:
+        raise Exception("Send me the image for this word!")
 
-    return run_for_given_file.extract_for_image(request.form['path'])
+    k = Image.open(BytesIO(base64.b64decode(request.form['image'].split(",")[1])))
+    k.save("abcd.png")
+    k.close()
+
+    return run_for_given_file.extract_for_image('abcd.png')
 
 app.run()

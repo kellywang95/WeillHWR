@@ -57,7 +57,8 @@ def extract_for_image(extra_path):
     match = np.array(
         [1 if prediction.target.lower() == prediction.pred.lower() else 0 for prediction in predicted_list])
     print("Model Prediction : ")
-    print(" ".join([prediction.pred.lower() for prediction in predicted_list]))
+    model_prediction = " ".join([prediction.pred.lower() for prediction in predicted_list])
+    print(model_prediction)
     print('Accuracy : ' + str(match.mean()))
 
     corrected_text = [correction(prediction.pred.lower()) for prediction in predicted_list]
@@ -67,12 +68,13 @@ def extract_for_image(extra_path):
     corrected_match = np.array([1 if corrected.lower() == prediction.target.lower() else 0 for corrected, prediction in
                                 zip(corrected_text, predicted_list)])
     print("Corrected Prediction : ")
-    print(" ".join(corrected_text))
+    corrected_prediction = " ".join(corrected_text)
+    print(corrected_prediction)
     print('Accuracy : ' + str(corrected_match.mean()))
 
     # we also need to calculate the accuracy for entries only larger than or equal to 5 terms
 
-    return " ".join(corrected_text)
+    return "\n\n".join(["Original: " + model_prediction, corrected_prediction])
 
 
 def extract_result(image_index):
