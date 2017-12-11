@@ -37,11 +37,12 @@ def search_txt():
 
     return jsonify(run_for_given_file.get_most_relevant(request.form['keyword'], 3))
 
+
 @app.route('/parse_single_word', methods=['POST'])
-def search_txt():
+def parse_txt():
     if 'path' not in request.form:
         raise Exception("Send me the path for this word!")
 
-    return "stub_transcription_for_word"
+    return run_for_given_file.extract_for_image(request.form['path'])
 
 app.run()
