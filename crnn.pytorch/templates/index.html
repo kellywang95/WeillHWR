@@ -47,10 +47,34 @@
 
         }
 
+        function transcribeWord(){
+            var wordImage = document.getElementById('canvasWord');
+            var dataURL = wordImage.toDataURL();
+            console.log(dataURL);
+//            var spinning_icon = '<i class="fa fa-spinner fa-spin" style="font-size:24px;" id="spinning"></i>';
+//            $('div#wordOutput').append(spinning_icon);
+            $.ajax({
+                url: "/single_image",
+                dataType: 'text',
+                type: 'POST',
+                data: {"image":dataURL},
+                success:function (response) {
+                    console.log(response);
+//                    document.getElementById('spinning').remove();
+//                    document.getElementById('waiting').remove();
+//                    $('div#text' + id).text(response);
+                }
+            });
+
+
+        }
+
 
 
         var canvas;
         var context;
+        var wordCanvas;
+        var wordContext;
 
 
 
@@ -69,6 +93,27 @@
                         var centerShift_y = ( canvas.height - img.height*ratio ) / 2;
                         context.clearRect(0,0,canvas.width, canvas.height);
                         context.drawImage(img, 0,0, img.width, img.height,
+                            centerShift_x,centerShift_y,img.width*ratio, img.height*ratio);
+                    });
+                    img.src = e.target.result;
+                };
+                FR.readAsDataURL( this.files[0] );
+            }
+        }
+
+        function readWord() {
+            if ( this.files && this.files[0] ) {
+                var FR= new FileReader();
+                FR.onload = function(e) {
+                    var img = new Image();
+                    img.addEventListener("load", function() {
+                        var hRatio = canvas.width  / img.width    ;
+                        var vRatio =  canvas.height / img.height  ;
+                        var ratio  = Math.min ( hRatio, vRatio );
+                        var centerShift_x = ( wordCanvas.width - img.width*ratio ) / 2;
+                        var centerShift_y = ( wordCanvas.height - img.height*ratio ) / 2;
+                        wordContext.clearRect(0,0,wordCanvas.width, wordCanvas.height);
+                        wordContext.drawImage(img, 0,0, img.width, img.height,
                             centerShift_x,centerShift_y,img.width*ratio, img.height*ratio);
                     });
                     img.src = e.target.result;
@@ -166,6 +211,10 @@
 
             $('.tt-query').css('background-color','#fff');
 
+            el("wordUpload").addEventListener("change", readWord, false);
+            wordCanvas  = el("canvasWord");
+            wordContext = wordCanvas.getContext("2d");
+
         });
 
     </script>
@@ -224,7 +273,23 @@
 
 
 <div class="container" id="transcription">
-    <div class="row"><h5>Upload your document here to get it transcribed</h5></div>
+    <div class="row"><h5>Upload any handwritten text here to get it transcribed</h5></div>
+    <div class="row" style="padding-top: 2px">
+        <div class="col-md-5">
+            <input type='file' id="wordUpload" />
+        </div>
+        <div class="col-md-7">
+            Predictions will be returned here
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-5">
+            <canvas id="canvasWord" width="430" height="150" onclick="transcribeWord()" >
+            </canvas>
+        </div>
+        <div class="col-md-7" id="wordOutput" >
+        </div>
+    </div>
     <div class="row" style="padding-top: 2px">
         <div class="col-md-5">
             <input type='file' id="fileUpload" />
@@ -244,6 +309,7 @@
         <div class="col-md-7" id="text3" >
         </div>
     </div>
+
     <div class="row" style="padding-top: 10px">
         <div class="col-md-5">
             Document 1
@@ -305,18 +371,18 @@
     <div class="row">
         <h5>Insights extracted from the data set</h5>
     </div>
-    <div class="row">
-        <img src="../static/dataSet_cropped.jpeg" class="img-responsive">
+    <div class="col-md-7">
+        <img src="../static/clustering_image_updated.png" class="img-responsive">
     </div>
-    <div class="row">
-        <div class="col-md-6">
-            <img src="../static/wordFreq.jpeg" class="img-responsive" alt="...">
-        </div>
-        <div class="col-md-6">
-            <img src="../static/clustering_image.png" class="img-responsive" alt="..">
-        </div>
+    <!--<div class="row">-->
+        <!--<div class="col-md-6">-->
+            <!--<img src="../static/wordFreq.jpeg" class="img-responsive" alt="...">-->
+        <!--</div>-->
+        <!--<div class="col-md-6">-->
+            <!--<img src="../static/" class="img-responsive" alt="..">-->
+        <!--</div>-->
 
-    </div>
+    <!--</div>-->
 
 
 </div>
